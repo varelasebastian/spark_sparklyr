@@ -1,0 +1,26 @@
+---
+title: "Spark with Sparklyr"
+output: html_notebook
+---
+
+## Getting started
+
+```{r}
+system("java -version")
+```
+```{r, eval=FALSE}
+install.packages("sparklyr")
+packageVersion("sparklyr")
+```
+```{r}
+library(sparklyr)
+```
+
+```{r}
+spark_available_versions()
+```
+
+```{r}
+spark_install("2.3")
+```
+
