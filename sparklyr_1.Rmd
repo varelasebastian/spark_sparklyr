@@ -8,10 +8,13 @@ output: html_notebook
 ```{r}
 system("java -version")
 ```
+
 ```{r, eval=FALSE}
 install.packages("sparklyr")
 packageVersion("sparklyr")
 ```
+
+
 ```{r}
 library(sparklyr)
 ```
@@ -20,7 +23,105 @@ library(sparklyr)
 spark_available_versions()
 ```
 
-```{r}
-spark_install("2.3")
+```{r, eval=FALSE}
+spark_install("3.0")
 ```
 
+```{r}
+spark_installed_versions()
+```
+
+```{r, eval=FALSE}
+spark_uninstall(version = "3.0.2", hadoop = "2.7")
+spark_uninstall(version = "3.0.2", hadoop = "3.2")
+```
+
+
+## Connecting
+
+```{r}
+library(sparklyr)
+sc <- spark_connect(master = "local", version = "3.0")
+```
+
+## Using Spark
+
+copying the mtcars dataset into Apache Spark: *copy_to()* returns a reference to the dataset in Spark
+```{r}
+cars <- copy_to(sc, mtcars) #sc = spark connection
+```
+
+```{r}
+cars
+```
+```{r}
+class(cars)
+```
+mtcars?
+```{r}
+mtcars #we copied the mtcars dataset into Spark
+```
+```{r}
+class(mtcars) #is this a local file?
+```
+
+## Web Interface 
+
+Spark windows in Connection tab. This is a local connection.
+
+## Analysis
+
+you can use SQL (Structured Query Language) or dplyr
+
+```{r}
+library(DBI)
+dbGetQuery(sc, "SELECT count(*) FROM mtcars")
+```
+
+```{r}
+library(dplyr)
+count(cars)
+```
+
+```{r}
+select(cars, hp, mpg) %>%
+  sample_n(100) %>%
+  collect() %>% ##collect data from Spark to perform further data processing in R
+  plot()
+```
+##  Modeling
+
+```{r}
+model <- ml_linear_regression(cars, mpg ~ hp)
+model
+```
+```{r}
+model %>%
+  ml_predict(copy_to(sc, data.frame(hp = 250 + 10 * 1:10))) %>%
+  transmute(hp = hp, mpg = prediction) %>%
+  full_join(select(cars, hp, mpg)) %>%
+  collect() %>%
+  plot()
+```
+## Data
+
+For simplicity, we copied the *mtcars* dataset into Spark; however, data is usually not copied into Spark. Instead, data is read from existing data sources in a variety of formats, like plain text, CSV, JSON, Java Database Connectivity (JDBC), and many more, which we examine in detail in Chapter 8. For instance, we can export our cars dataset as a CSV file:
+
+```{r, eval=FALSE}
+spark_write_csv(cars, "cars.csv")
+
+#spark_write_csv(cars, "C:/Users/Usuario/Desktop/Seba/Seminarios/spark_sparklyr/cars.csv")
+```
+
+```{r, eval=FALSE}
+cars <- spark_read_csv(sc, "cars.csv")
+```
+
+## Disconnecting
+
+For local clusters (really, any cluster), after you are done processing data, you should disconnect by running the following:
+```{r}
+spark_disconnect(sc)
+```
+
+Notice that exiting R, or RStudio, or restarting your R session, also causes the Spark connection to terminate, which in turn terminates the Spark cluster and cached data that is not explicitly saved.
