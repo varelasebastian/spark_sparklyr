@@ -3,7 +3,7 @@ title: "Spark with Sparklyr"
 output: html_notebook
 ---
 
-## Getting started
+## Getting started...
 
 ```{r}
 system("java -version")
@@ -54,6 +54,7 @@ cars <- copy_to(sc, mtcars) #sc = spark connection
 ```{r}
 cars
 ```
+
 ```{r}
 class(cars)
 ```
@@ -61,6 +62,7 @@ mtcars?
 ```{r}
 mtcars #we copied the mtcars dataset into Spark
 ```
+
 ```{r}
 class(mtcars) #is this a local file?
 ```
@@ -95,6 +97,7 @@ select(cars, hp, mpg) %>%
 model <- ml_linear_regression(cars, mpg ~ hp)
 model
 ```
+
 ```{r}
 model %>%
   ml_predict(copy_to(sc, data.frame(hp = 250 + 10 * 1:10))) %>%
@@ -103,6 +106,7 @@ model %>%
   collect() %>%
   plot()
 ```
+
 ## Data
 
 For simplicity, we copied the *mtcars* dataset into Spark; however, data is usually not copied into Spark. Instead, data is read from existing data sources in a variety of formats, like plain text, CSV, JSON, Java Database Connectivity (JDBC), and many more, which we examine in detail in Chapter 8. For instance, we can export our cars dataset as a CSV file:
@@ -117,7 +121,7 @@ spark_write_csv(cars, "cars.csv")
 cars <- spark_read_csv(sc, "cars.csv")
 ```
 
-## Disconnecting
+## Disconnecting...
 
 For local clusters (really, any cluster), after you are done processing data, you should disconnect by running the following:
 ```{r}
