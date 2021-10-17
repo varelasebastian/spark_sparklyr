@@ -3,7 +3,7 @@ title: "Spark with Sparklyr"
 output: html_notebook
 ---
 
-## Getting started.................
+## Getting started
 
 ```{r}
 system("java -version")
