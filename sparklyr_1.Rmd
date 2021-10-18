@@ -37,14 +37,14 @@ spark_uninstall(version = "3.0.2", hadoop = "3.2")
 ```
 
 
-## Connecting
+### Connecting
 
 ```{r}
 library(sparklyr)
 sc <- spark_connect(master = "local", version = "3.0")
 ```
 
-## Using Spark
+### Using Spark
 
 copying the mtcars dataset into Apache Spark: *copy_to()* returns a reference to the dataset in Spark
 ```{r}
@@ -54,22 +54,25 @@ cars <- copy_to(sc, mtcars) #sc = spark connection
 ```{r}
 cars
 ```
+
 ```{r}
 class(cars)
 ```
+
 mtcars?
 ```{r}
 mtcars #we copied the mtcars dataset into Spark
 ```
+
 ```{r}
 class(mtcars) #is this a local file?
 ```
 
-## Web Interface 
+### Web Interface 
 
 Spark windows in Connection tab. This is a local connection.
 
-## Analysis
+### Analysis
 
 you can use SQL (Structured Query Language) or dplyr
 
@@ -89,12 +92,14 @@ select(cars, hp, mpg) %>%
   collect() %>% ##collect data from Spark to perform further data processing in R
   plot()
 ```
-##  Modeling
+
+###  Modeling
 
 ```{r}
 model <- ml_linear_regression(cars, mpg ~ hp)
 model
 ```
+
 ```{r}
 model %>%
   ml_predict(copy_to(sc, data.frame(hp = 250 + 10 * 1:10))) %>%
@@ -103,21 +108,24 @@ model %>%
   collect() %>%
   plot()
 ```
-## Data
+
+### Data
 
 For simplicity, we copied the *mtcars* dataset into Spark; however, data is usually not copied into Spark. Instead, data is read from existing data sources in a variety of formats, like plain text, CSV, JSON, Java Database Connectivity (JDBC), and many more, which we examine in detail in Chapter 8. For instance, we can export our cars dataset as a CSV file:
 
 ```{r, eval=FALSE}
+#does not work on local...
+
 spark_write_csv(letters, "cars.csv")
 
 #spark_write_csv(cars, "C:/Users/Usuario/Desktop/Seba/Seminarios/spark_sparklyr/cars.csv")
 ```
-
+In practice, we would read an existing dataset from a distributed storage system like HDFS (Hadoop Distributed File System), but we can also read back from the local file system:
 ```{r, eval=FALSE}
 cars <- spark_read_csv(sc, "cars.csv")
 ```
 
-## Disconnecting
+### Disconnecting
 
 For local clusters (really, any cluster), after you are done processing data, you should disconnect by running the following:
 ```{r}
@@ -125,3 +133,17 @@ spark_disconnect(sc)
 ```
 
 Notice that exiting R, or RStudio, or restarting your R session, also causes the Spark connection to terminate, which in turn terminates the Spark cluster and cached data that is not explicitly saved.
+
+## Analysis
+
+The ideal method pushes compute to the Spark cluster and then collects results into R. You can use dplyr verbs with which you’re already familiar in R, and then sparklyr and dplyr will translate those actions into Spark SQL statements
+
+To practice as you learn, the rest of this chapter’s code uses a single exercise that runs in the local Spark master.
+
+```{r}
+library(sparklyr)
+library(dplyr)
+
+sc <- spark_connect(master = "local", version = "2.3") ## your version...
+```
+
