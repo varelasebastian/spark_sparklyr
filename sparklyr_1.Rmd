@@ -1,9 +1,32 @@
 ---
 title: "Spark with Sparklyr"
-output: html_notebook
+
 ---
 
-## Getting started
+## 1. Introduction
+
+Véase este video complementario, sobre cómo usar sparklyr con databricks con una cuenta gratuita y limitada respecto de capacidad de escalamiento.
+
+https://www.youtube.com/watch?v=DwuG5CVg-aQ&list=WL&index=17&t=3445s
+
+### History
+
+How to analyze large-scale data? move away from your local computer into computing clusters required to solve many real world problems
+
+We describe information stored electronically as *digital information*. In contrast, *analog information* represents everything we have stored by any nonelectronic means such as handwritten notes, books, newspapers, and so on.
+
+Search engines were unable to store all of the web page information required to support web searches in a single computer. This meant that they had to split information into several files and store them across many machines. This approach became known as the Google File System, and was presented in a research paper published in 2003 by Google.
+
+One year later, Google published a new paper describing how to perform operations across the Google File System, an approach that came to be known as *MapReduce*. Then  a team at Yahoo worked on implementing the Google File System and MapReduce as a single open source project. This project was released in 2006 as *Hadoop*, with the Google File System implemented as the Hadoop Distributed File System (HDFS).
+
+In 2009, *Apache Spark* began as a research project at UC Berkeley’s AMPLab to improve on MapReduce. Specifically, Spark provided a richer set of verbs beyond MapReduce to facilitate optimizing code running in multiple machines. Spark is faster and easier to use than Hadoop.
+
+In 2010, Spark was released as an open source project and then donated to the *Apache Software Foundation* in 2013. Spark is licensed under Apache 2.0, which allows you to freely use, modify, and distribute it. 
+
+*Apache Spark is a unified analytics engine for large-scale data processing. You can interpret large-scale as cluster-scale, a set of connected computers working together*.
+
+
+## 2. Getting started
 
 ```{r}
 system("java -version")
@@ -14,10 +37,10 @@ install.packages("sparklyr")
 packageVersion("sparklyr")
 ```
 
-
 ```{r}
 library(sparklyr)
 ```
+
 
 ```{r}
 spark_available_versions()
@@ -37,16 +60,19 @@ spark_uninstall(version = "3.0.2", hadoop = "3.2")
 ```
 
 
-### Connecting
+### 2.3 Connecting
 
 ```{r}
-library(sparklyr)
+#library(sparklyr)  #ya activado arriba
 sc <- spark_connect(master = "local", version = "3.0")
 ```
 
-### Using Spark
+It’s important to mention that, so far, we’ve installed only a *local Spark cluster*. A local cluster is really helpful to get started, test code, and troubleshoot with ease. Later chapters explain where to find, install, and connect to real Spark clusters with many machines Chapter 7)
 
-copying the mtcars dataset into Apache Spark: *copy_to()* returns a reference to the dataset in Spark
+### 2.4 Using Spark
+
+copying the mtcars dataset into Apache Spark: *copy_to()* returns a reference to the dataset in Spark. mtcars es un dataset del paquete "datasets", paquete activo por default
+
 ```{r}
 cars <- copy_to(sc, mtcars) #sc = spark connection
 ```
@@ -58,27 +84,23 @@ cars
 ```{r}
 class(cars)
 ```
-
-mtcars?
 ```{r}
-mtcars #we copied the mtcars dataset into Spark
+class(mtcars) #is this a local file? parece que sí...
 ```
 
-```{r}
-class(mtcars) #is this a local file?
-```
+#### 2.4.1 Web Interface 
 
-### Web Interface 
+Most of the Spark commands are executed from the R console; however, monitoring and analyzing execution is done through Spark’s web interface (Connections) This interface is a web application provided by Spark.
 
-Spark windows in Connection tab. This is a local connection.
+In Chapter 9 you will learn how to request more compute instances and resources.
 
-### Analysis
+#### 2.4.2 Analysis
 
 you can use SQL (Structured Query Language) or dplyr
 
 ```{r}
 library(DBI)
-dbGetQuery(sc, "SELECT count(*) FROM mtcars")
+dbGetQuery(sc, "SELECT count(*) FROM mtcars") #esto es spark o R?
 ```
 
 ```{r}
@@ -86,19 +108,25 @@ library(dplyr)
 count(cars)
 ```
 
+In general, we usually start by analyzing data in Spark with dplyr, followed by sampling rows and selecting a subset of the available columns. The last step is to collect data from Spark to perform further data processing in R, like data visualization.
+
 ```{r}
 select(cars, hp, mpg) %>%
   sample_n(100) %>%
-  collect() %>% ##collect data from Spark to perform further data processing in R
+  collect() %>% # collect data from Spark
   plot()
 ```
 
-###  Modeling
+####  2.4.3 Modeling
+
+ml_linear_regression {sparklyr}: Perform regression using linear regression.
 
 ```{r}
 model <- ml_linear_regression(cars, mpg ~ hp)
 model
 ```
+
+ml-transform-methods {sparklyr}: Methods for transformation, fit, and prediction.Methods for transformation, fit, and prediction.
 
 ```{r}
 model %>%
@@ -108,10 +136,16 @@ model %>%
   collect() %>%
   plot()
 ```
+We introduce all of the Spark models, techniques, and best practices in Chapter 4.
 
-### Data
+#### 2.4.4 Data
 
 For simplicity, we copied the *mtcars* dataset into Spark; however, data is usually not copied into Spark. Instead, data is read from existing data sources in a variety of formats, like plain text, CSV, JSON, Java Database Connectivity (JDBC), and many more, which we examine in detail in Chapter 8. For instance, we can export our cars dataset as a CSV file:
+
+```{r, eval=FALSE}
+#tira error
+spark_write_csv(cars, "cars.csv") #no funciona en pc local, sí en Rstudio cloud
+```
 
 ```{r, eval=FALSE}
 #does not work on local...
@@ -120,30 +154,425 @@ spark_write_csv(letters, "cars.csv")
 
 #spark_write_csv(cars, "C:/Users/Usuario/Desktop/Seba/Seminarios/spark_sparklyr/cars.csv")
 ```
+
 In practice, we would read an existing dataset from a distributed storage system like HDFS (Hadoop Distributed File System), but we can also read back from the local file system:
 ```{r, eval=FALSE}
-cars <- spark_read_csv(sc, "cars.csv")
+#no funciona en pc local, sí en Rstudio cloud
+cars1 <- spark_read_csv(sc, "cars.csv")
 ```
 
-### Disconnecting
+we examine these aspects in detail in Chapter 8. 
 
-For local clusters (really, any cluster), after you are done processing data, you should disconnect by running the following:
+#### 2.4.5 Extensions
+
+Extensiones que usuarios de R han hecho a Sparklyr: Chapter 10 introduces many interesting ones to perform advanced modeling, graph analysis, preprocessing of datasets for deep learning, and more.
+
+#### 2.4.6 Distributed R
+
+For those few cases when a particular functionality is not available in Spark and no extension has been developed, you can consider distributing your own R code across the Spark cluster. This is a powerful tool, but it comes with additional complexity, so you should only use it as a last resort.
+
+#### 2.4.7 Streaming
+
+While processing large static datasets is the most typical use case for Spark, processing dynamic datasets in real time is also possible and, for some applications, a requirement. You can think of a streaming dataset as a static data source with new data arriving continuously, like stock market quotes.
+
+Streaming data is usually read from Kafka (an open source stream-processing software platform) or from distributed storage that receives new data continuously.  In Chapter 12 we properly introduce you to all the interesting transformations you can perform to analyze real-time data.
+
+#### 2.4.8 Logs
+
+Logging is definitely less interesting than real-time data processing; however, it’s a tool you should be or become familiar with. A log is just a text file to which Spark appends information relevant to the execution of tasks in the cluster. Most of the time, you won’t need to worry about Spark logs, except in cases for which you need to troubleshoot a failed computation; in those cases, logs are an invaluable resource to be aware of.   
+
+### 2.5 Disconnecting
+
+For local clusters (really, any cluster), after you are done processing data, you should disconnect by running the following (o clickeando el ícono)
 ```{r}
 spark_disconnect(sc)
 ```
 
 Notice that exiting R, or RStudio, or restarting your R session, also causes the Spark connection to terminate, which in turn terminates the Spark cluster and cached data that is not explicitly saved.
 
-## Analysis
+## 3. Analysis
 
-The ideal method pushes compute to the Spark cluster and then collects results into R. You can use dplyr verbs with which you’re already familiar in R, and then sparklyr and dplyr will translate those actions into Spark SQL statements
+In this chapter you learn widely used R packages and practices to perform data analysis—dplyr, ggplot2, formulas, rmarkdown, and so on—which also happen to work in Spark.
+
+*The ideal method pushes compute to the Spark cluster and then collects results into R. You can use dplyr verbs with which you’re already familiar in R, and then sparklyr and dplyr will translate those actions into Spark SQL statements* (Spark funciona internamente con Spark SQL statements)
 
 To practice as you learn, the rest of this chapter’s code uses a single exercise that runs in the local Spark master.
 
 ```{r}
 library(sparklyr)
 library(dplyr)
-
-sc <- spark_connect(master = "local", version = "2.3") ## your version...
+sc <- spark_connect(master = "local", version = "3.0")
 ```
+
+when you need to fit a linear regression model, instead of using R’s familiar lm() function, you would use Spark’s ml_linear_regression(). Spark usa Scala internamente para modelar (y en general)
+
+### 3.2 Import
+
+when you are using Spark, the data is imported into Spark, not R. Rather than importing all data into Spark, you can request Spark to access the data source without importing it.This is a decision you should make based on speed and performance (see chapter 9)
+
+```{r}
+cars <- copy_to(sc, mtcars)
+```
+
+Note: When using real clusters, you should use copy_to() to transfer only small tables from R; large data transfers should be performed with specialized data transfer tools.
+
+### 3.3 Wrangle
+
+In the R environment, cars can be treated as if it were a local DataFrame, so you can use dplyr verbs
+
+```{r}
+summarize_all(cars, mean)
+```
+
+dplyr converted this task into SQL statements that are then sent to Spark.*The show_query() command makes it possible to peer into the SQL statement* that sparklyr and dplyr created and sent to Spark:
+
+```{r}
+summarize_all(cars, mean) %>%
+  show_query()
+```
+As is evident, dplyr is much more concise than SQL.
+
+```{r}
+cars %>%
+  mutate(transmission = ifelse(am == 0, "automatic", "manual")) %>%
+  group_by(transmission) %>%
+  summarise_all(mean)
+```
+
+#### 3.3.1 Built-in Functions
+
+Sometimes, we might need to perform an operation not yet available through dplyr and sparklyr. Instead of downloading the data into R, there is usually a Hive function within Spark to accomplish what we need.
+
+The Apache Hive data warehouse software facilitates reading, writing, and managing large datasets residing in distributed storage using SQL.
+
+Spark SQL is based on Hive’s SQL conventions and functions, and it is possible to call all these functions using dplyr as well, by calling them as if they were R functions. Instead of failing, dplyr passes functions it does not recognize as is to the query engine.
+
+```{r}
+summarise(cars, mpg_percentile = percentile(mpg, 0.25))
+```
+There is no percentile() function in R, so dplyr passes that portion of the code as-is to the resulting SQL query:
+
+```{r}
+summarise(cars, mpg_percentile = percentile(mpg, 0.25)) %>%
+  show_query()
+```
+We have included a comprehensive list of all the Hive functions in the section Hive Functions. 
+
+#### 3.3.2 Correlations
+
+Podemos usar funciones de Spark
+
+sparklyr::ml_corr		Compute correlation matrix
+```{r}
+ml_corr(cars)
+```
+
+O de R, el paquete corrr tiene backend en spark:
+
+```{r}
+library(corrr)
+correlate(cars, use = "pairwise.complete.obs", method = "pearson") 
+```
+
+Esto también es R:
+```{r}
+correlate(cars, use = "pairwise.complete.obs", method = "pearson") %>%
+  shave() %>% #shave() function turns all of the duplicated results into NAs
+  rplot()
+```
+It is much easier to see which relationships are positive or negative: positive relationships are in gray, and negative relationships are black. The size of the circle indicates how significant their relationship is. 
+
+
+### 3.4 Visualize
+
+In essence, the approach for visualizing is the same as in wrangling: push the computation to Spark, and then collect the results in R for plotting.
+
+
+#### 3.4.1 Using ggplot2
+
+Así haríamos inside R (acá funca igual...)
+```{r, eval=FALSE}
+library(ggplot2)
+ggplot(aes(as.factor(cyl), mpg), data = mtcars) + geom_col()
+```
+
+In Spark, there are a couple of key steps when codifying the “push compute, collect results” approach. First, ensure that the transformation operations happen within Spark. In the example that follows, group_by() and summarise() will run inside Spark. The second is to bring the results back into R after the data has been transformed.
+
+```{r}
+car_group <- cars %>%
+  group_by(cyl) %>%
+  summarise(mpg = sum(mpg, na.rm = TRUE)) %>%
+  collect() %>%  #collect() ingest the results into R from Spark
+  print()
+```
+
+En R:
+```{r, eval=FALSE, fig.width=4}
+ggplot(aes(as.factor(cyl), mpg), data = car_group) + 
+  geom_col(fill = "#999999") + coord_flip()
+```
+#### 3.4.2 Using dbplot
+
+to ease this transformation step before visualizing, the dbplot package provides a few ready-to-use visualizations that automate aggregation in Spark. The dbplot package provides helper functions for plotting with remote data.
+
+
+dbplot_histogram {dbplot} Uses very generic dplyr code to aggregate data and then 'ggplot2'
+
+```{r}
+library(ggplot2)
+library(dbplot)
+cars %>%
+dbplot_histogram(mpg, binwidth = 3) +
+labs(title = "MPG Distribution",
+     subtitle = "Histogram over miles per gallon")
+```
+
+Para bivariado, scatterplots. However, for scatter plots, no amount of “pushing the computation” to Spark will help with this problem because the data must be plotted in individual dots. The raster (de trama) plot equivale a un scatterplot: 
+
+```{r}
+dbplot_raster(cars, mpg, wt, resolution = 16)
+```
+
+###3.5 Model
+
+Véase libro. Usually, before fitting a model you would need to use multiple dplyr transformations to get it ready to be consumed by a model. To make sure the model can be fitted as efficiently as possible, you should cache your dataset before fitting it, as described next.
+
+#### 3.5.1 Caching
+
+The examples in this chapter are built using a very small dataset. In real-life scenarios, large amounts of data are used for models. If the data needs to be transformed first, the volume of the data could exact a heavy toll on the Spark session. Before fitting the models, it is a good idea to save the results of all the transformations in a new table loaded in Spark memory.
+
+The *compute()* command can take the end of a dplyr command and save the results to Spark memory (Véase libro)
+
+###3.6 Communicate
+
+Since an R Markdown document is self-contained and meant to be reproducible, before rendering documents, we should first disconnect from Spark to free resources:
+
+```{r}
+spark_disconnect(sc)
+```
+
+*While doing analysis in Spark with R, remember to push computation to Spark and focus on collecting results in R*. 
+
+## 4 Modeling
+
+We explore *MLlib*, the component of Spark that allows you to write high-level code to perform predictive modeling on distributed data.
+
+Here we train models “by hand", en el chapter 5 with Pipelines.
+
+Quizás para modelar a mano es mejor usar el paquete H2o... Take a moment to look at the long list of MLlib functions included in the appendix of this book; a quick glance at this list shows that Spark supports Decision Trees, Gradient-Boosted Trees, Accelerated Failure Time Survival Regression, Isotonic Regression, K-Means Clustering, Gaussian Mixture Clustering, and more.
+
+This chapter focuses on predictive modeling, since Spark aims to enable machine learning as opposed to statistical inference. Machine learning is often more concerned about forecasting the future rather than inferring the process by which our data is generated,16 which is then used to create automated systems. Machine learning can be categorized into supervised learning (predictive modeling) and unsupervised learning. *In supervised learning, we try to learn a function that will map from X to Y, from a dataset of (x, y) examples. In unsupervised learning, we just have X and not the Y labels, so instead we try to learn something about the structure of X*. Some practical use cases for supervised learning include forecasting tomorrow’s weather, determining whether a credit card transaction is fraudulent, and coming up with a quote for your car insurance policy. With *unsupervised learning, examples include automated grouping of photos of individuals*, segmenting customers based on their purchase history, and clustering of documents.
+
+While the Spark ecosystem is very rich, there is still a tremendous number of packages from CRAN, with some implementing functionality that you might require for a project. What we learned in Chapter 3 also applies here—it is important to *keep track of where you are performing computations and move between the cluster and your R session as appropriate*.
+
+The examples in this chapter utilize small datasets so that you can easily follow along in *local mode*. In practice, if your dataset fits comfortably in memory on your local machine, you might be better off using an efficient, *nondistributed implementation of the modeling algorithm*.
+
+### 4.2 Exploratory Data Analysis
+
+Exploratory data analysis (EDA), in the context of predictive modeling, is the exercise of looking at excerpts and summaries of the data. The specific goals of the EDA stage are informed by the business problem, but here are some common objectives:
+
+* Check for data quality; confirm meaning and prevalence of missing values and reconcile statistics against existing controls.
+* Understand univariate relationships between variables.
+* Perform an initial assessment on what variables to include and what transformations need to be done on them.
+
+Explica estos temas:
+
+* Análisis univariado y bivariado
+* Correspondence Analysis
+
+### 4.3 Feature Engineering
+
+The feature engineering exercise comprises transforming the data to increase the performance of the model. This can include things like centering and scaling numerical values and performing string manipulation to extract meaningful variables. It also often includes variable selection—the process of selecting which predictors are used in the model.
+
+### 4.4 Supervised Learning
+
+For tuning and validation, we perform *10-fold cross-validation*, which is a standard approach for model tuning. The scheme works as follows: we first divide our dataset into 10 approximately equal-sized subsets. We take the 2nd to 10th sets together as the training set for an algorithm and validate the resulting model on the 1st set. Next, we reserve the 2nd set as the validation set and train the algorithm on the 1st and 3rd to 10th sets. In total, we train 10 models and average the performance. If time and resources allow, you can also perform this procedure multiple times with different random partitions of the data.
+
+#### 4.4.1 Generalized Linear Regression
+
+#### 4.4.2 Other Models
+
+*hyperparameters* (values that control the model-fitting process) for your particular problem
+
+### 4.5 Unsupervised Learning
+
+Along with speech, images, and videos, textual data is one of the components of the big data explosion.
+
+#### 4.5.1 Data Preparation
+
+#### 4.5.2 Topic Modeling
+
+LDA is a type of topic model for identifying abstract “topics” in a set of documents. It is an unsupervised algorithm. A typical use case for topic models involves categorizing many documents, for which the large number of documents renders manual approaches infeasible. The application domains range from GitHub issues to legal documents.
+
+The learned topics can also serve as features in a downstream supervised learning task.
+
+
+## 5 Pipelines
+
+While predicting datasets manually is often a reasonable approach (by “manually,” we mean someone imports a dataset into Spark and uses the fitted model to enrich or predict values), it does beg the question, *could we automate this process into systems that anyone can use? For instance, how can we build a system that automatically identifies an email as spam without having to manually analyze each email account? Chapter 5 presents the tools to automate data analysis and modeling with pipelines*.
+
+In chapter 4 emphasis was placed on *predictive modeling*. Spark can help with data science at scale, but it can also assist in *productionizing data science workflows into automated processes, known by many as machine learning*. Chapter 5 presents the tools we will need to take our predictive models, and even our entire training workflows, into automated environments that can run continuously or be exported and consumed in web applications, mobile applications, and more.
+
+*This chapter also happens to be the last chapter that encourages using your local computer as a Spark cluster. You are just one chapter away from getting properly introduced to cluster computing* and beginning to perform data science or machine learning that can scale to the most demanding computation problems.
+
+### 5.1 Overview
+
+The building blocks of pipelines are objects called *transformers and estimators*, which are collectively referred to as *pipeline stages* (etapas de la tubería)
+
+
+* *transformer*: can be used to apply transformations to a DataFrame and return another DataFrame; the resulting DataFrame often comprises the original DataFrame with new columns appended to it. 
+
+* *estimator*: estimators on the other hand, can be used to create a transformer giving some training data. Consider the following example to illustrate this relationship: a “center and scale” estimator can learn the mean and standard deviation of some data and store the statistics in a resulting transformer object; this transformer can then be used to normalize the data that it was trained on and also any new, yet unseen, data.
+
+*Consider the following example to illustrate this relationship: a “center and scale” estimator can learn the mean and standard deviation of some data and store the statistics in a resulting transformer object; this transformer can then be used to normalize the data that it was trained on and also any new, yet unseen, data*.
+
+```{r}
+library(sparklyr)
+library(dplyr)
+sc <- spark_connect(master = "local", version = "3.0") #sc means Spark connection
+```
+
+
+ft_standard_scaler {sparklyr}. Feature Transformation – StandardScaler (Estimator). Standardizes features.Creo que genera un "estimador"
+```{r}
+scaler <- ft_standard_scaler(
+  sc,
+  input_col = "features",
+  output_col = "features_scaled",
+  with_mean = TRUE)
+
+scaler
+```
+
+```{r}
+class(scaler) #qué es?, una etapa de un pipeline, un estimador
+```
+
+We can now create some data (for which we know the mean and standard deviation) and then fit our scaling model to it using the *ml_fit()* function:
+
+```{r}
+df <- copy_to(sc, data.frame(value = rnorm(100000)))
+glimpse(df)
+```
+Agrego ahora el  %>%
+
+*ft_vector_assembler()*  In Spark ML, many algorithms and feature transformers require that the input be a vector column. The function ft_vector_assembler() performs this task. You can also use the function to initialize a transformer to be used in a pipeline.
+```{r}
+df <- copy_to(sc, data.frame(value = rnorm(100000))) %>% 
+  ft_vector_assembler(input_cols = "value", output_col = "features")
+
+glimpse(df)
+```
+Se generó una columna adicional llamada "features", con idéntico valor.
+
+ahora sí, fit our scaling model to it:
+
+*ml_fit()* ml-transform-methods {sparklyr}. When x is an estimator, ml_fit() returns a transformer.
+```{r}
+scaler_model <- ml_fit(scaler, df) #genera un transformer
+```
+
+```{r}
+class(scaler_model)
+```
+
+```{r}
+scaler_model #su media es 0 y std 1, en este caso porque la variable original tiene distribución normal
+```
+
+En mi Environment local, df, sc, y scaler son lists...
+
+We see that the mean and standard deviation are very close to 0 and 1, respectively, which is what we expect. We *then can use the transformer to transform a DataFrame*, using the ml_transform() function:
+
+ml_transform() ml-constructors {sparklyr}. Constructors for Pipeline Stages
+
+```{r}
+scaler_model %>% 
+  ml_transform(df) %>%
+  glimpse()
+```
+
+No se bien de qué fue el tema, pero veo que lo que hizo fue agarrar df con una columna y le agregó una columna más: features_scaled. Acá se aplica al mismo dataframe, pero si se aplicara a un df distinto lo normaliza usando la media y desviación típica del primer df.
+
+Now that you’ve seen basic examples of estimators and transformers, we can move on to pipelines.
+
+
+### 5.2 Creation of pipelines
+
+*A pipeline is simply a sequence of transformers and estimators*, and a pipeline model is a pipeline that has been trained on data so all of its components have been converted to transformers.
+
+There are a couple of ways to construct a pipeline in sparklyr, both of which use the *ml_pipeline()* function. We can initialize an empty pipeline with ml_pipeline(sc) and append stages to it:
+
+```{r}
+ml_pipeline(sc) %>% 
+  ft_standard_scaler(  #Standardizes features, genera un "estimador", ya visto
+    input_col = "features",
+    output_col = "features_scaled", 
+    with_mean = TRUE)
+```
+
+Alternatively, we can pass stages directly to ml_pipeline():
+
+```{r}
+pipeline <- ml_pipeline(scaler)  # scaler (estimador) se creo arriba con ft_standard_scaler()
+```
+
+We fit a pipeline as we would fit an estimator:
+```{r}
+pipeline_model <- ml_fit(pipeline, df)
+pipeline_model
+```
+el mismo resultado de arriba (A *pipeline* is simply a sequence of transformers and estimators). Note: As a result of the design of Spark ML, pipelines are always estimator objects, even if they comprise only transformers. 
+
+En suma, pipelines es un workflow de procesos de datos "empaquetado" como en una función, o una receta... me parece. * *A pipeline includes feature engineering and modeling steps*.
+
+### 5.3 Use Cases
+
+We exhibit a real pipeline (véase libro)
+
+#### 5.3.1 Hyperparameter Tuning
+
+pipelines can make it easier for us to test different model specifications (Hyperparameter Tuning). Con la función *ml_cross_validator()* se hace cross-validation testing different hyperparameter combinations
+
+### 5.4 Operating Modes
+
+### 5.5 Interoperability
+
+One of the most powerful aspects of pipelines is that they can be serialized to disk and are fully interoperable with the other Spark APIs such as Python and Scala. This means that you can easily share them among users of Spark working in different languages, which might include other data scientists, data engineers, and deployment engineers. 
+
+Note that the exported JSON and parquet files are agnostic of the API that exported them. This is better in a multilingual machine learning engineering team. Esto quiere decir que los modelos que se guardan como objetos se leen en JSON y parquet.
+
+In order to support a broad variety of data source, Spark needs to be able to read and write data in several different *file formats* (CSV, JSON- JavaScript Object Notation-, Parquet- Apache Parquet-, etc), access them while stored in several *file systems* (HDFS, S3, DBFS, etc) and, potentially, interoperate with other *storage systems* (databases, data warehouses, etc). 
+
+file systems vs file formats: exterior vs. interior. File systems are part of an OS that manages the placement and retrieval of files. File formats are the internal formatting of the data within a file. 
+
+### 5.6 Deployment
+
+In many cases, a data science project does not end with just a slide deck with insights and recommendations. Instead, the business problem at hand might require scoring new data points on a schedule or on-demand in real time. For example, a bank might want to evaluate its mortgage portfolio risk nightly (batch scoring deployment) or provide instant decisions on credit card applications (real time scoring deployment).
+
+*This process of taking a model and turning it into a service that others can consume is usually referred to as deployment or productionization*. Historically, there was a large gap between the analyst who built the model and the engineer who deployed it: the former might work in R and develop extensive documentation on the scoring mechanism, so that the latter can reimplement the model in C++ or Java. This practice, which might easily take months in some organizations, is less prevalent today, but is almost always unnecessary in Spark ML workflows. 
+
+Podemos mencionar dos modos de deployment:
+
+* *batch processing*: implies processing many records at the same time, and that execution time is not important as long it is reasonable (often on the scale of minutes to hours). 
+* *real-time processing*: implies scoring one or a few records at a time, but the latency is crucial (on the scale of <1 second). 
+
+*For both scoring methods, batch and real time, we will expose our model as web services, in the form of an API over the Hypertext Transfer Protocol (HTTP). This is the primary medium over which software communicates. By providing an API, other services or end users can utilize our model without any knowledge of R or Spark. The plumber R package enables us to do this very easily* by annotating our prediction function.
+
+#### 5.6.1 Batch Scoring
+
+### 5.7 Recap
+
+You learned how to tidy up your predictive modeling workflows by organizing data processing and modeling algorithms into pipelines. You learned that pipelines also facilitate collaboration among members of a multilingual data science and engineering team by sharing a language-agnostic serialization format—you can export a Spark pipeline from R and let others reload your pipeline into Spark using Python or Scala, which allows them to collaborate without changing their language of choice.
+
+You also learned how to deploy pipelines using mleap, a Java runtime that provides another path to productionize Spark models—you can export a pipeline and integrate it to Java-enabled environments without requiring the target environment to support Spark or R.
+
+
+##
+
+
+To get there, Chapter 6 presents what exactly a computing cluster is and explains the various options you can consider, like building your own or using cloud clusters on demand.
+
+
+
 
